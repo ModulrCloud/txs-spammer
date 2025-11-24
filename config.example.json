@@ -6,6 +6,14 @@
   "defaultPayload": {
     "memo": "loadgen"
   },
+  "faucet": {
+    "enabled": true,
+    "listen": ":8080",
+    "senderName": "validator-1",
+    "payload": {
+      "memo": "faucet"
+    }
+  },
   "senders": [
     {
       "name": "validator-1",

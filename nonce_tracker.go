@@ -50,6 +50,33 @@ func (nt *nonceTracker) Increment(account string) {
 	nt.nonces[account]++
 }
 
+// Reserve returns the next nonce for the given account while reserving it to
+// avoid concurrent reuse. The returned release function should be invoked with
+// success=true once the transaction using this nonce is submitted successfully;
+// otherwise pass success=false to release the reservation and retry with the
+// same nonce later.
+func (nt *nonceTracker) Reserve(account string) (nonce uint64, release func(success bool), ok bool) {
+	nt.mu.Lock()
+	defer nt.mu.Unlock()
+
+	nonce, ok = nt.nonces[account]
+	if !ok {
+		return 0, func(bool) {}, false
+	}
+
+	nt.nonces[account]++
+
+	return nonce, func(success bool) {
+		if success {
+			return
+		}
+
+		nt.mu.Lock()
+		nt.nonces[account]--
+		nt.mu.Unlock()
+	}, true
+}
+
 func fetchNonce(ctx context.Context, client *http.Client, nodeURL, account string) (uint64, error) {
 	url := strings.TrimRight(nodeURL, "/") + "/account/" + account
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

@@ -50,3 +50,23 @@ func sign(tx Transaction, privateKey string) (string, error) {
 
 	return cryptography.GenerateSignature(privateKey, hash), nil
 }
+
+func buildTransaction(sender Sender, nonce uint64, amount uint64, recipient string, payload map[string]any) (Transaction, error) {
+	tx := Transaction{
+		V:       sender.version(),
+		From:    sender.PublicKey,
+		To:      recipient,
+		Amount:  amount,
+		Fee:     sender.Fee,
+		Nonce:   nonce,
+		Payload: payload,
+	}
+
+	sig, err := sign(tx, sender.PrivateKey)
+	if err != nil {
+		return Transaction{}, err
+	}
+	tx.Sig = sig
+
+	return tx, nil
+}
