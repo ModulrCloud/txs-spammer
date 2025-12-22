@@ -56,14 +56,21 @@ func main() {
 					continue
 				}
 
+				txHash := ""
+				if h, err := tx.Hash(); err == nil {
+					txHash = h
+				} else {
+					log.Printf("failed to compute tx hash (from=%s to=%s nonce=%d): %v", tx.From, tx.To, tx.Nonce, err)
+				}
+
 				if err := submitTransaction(context.Background(), client, cfg.NodeURL, tx); err != nil {
 					release(false)
-					log.Printf("tx submit failed (%s -> %s nonce %d): %v", tx.From, tx.To, tx.Nonce, err)
+					log.Printf("tx submit failed (hash=%s from=%s to=%s nonce=%d): %v", txHash, tx.From, tx.To, tx.Nonce, err)
 					continue
 				}
 
 				release(true)
-				log.Printf("submitted tx: from=%s to=%s amount=%d fee=%d nonce=%d", tx.From, tx.To, tx.Amount, tx.Fee, tx.Nonce)
+				log.Printf("submitted tx: hash=%s from=%s to=%s amount=%d fee=%d nonce=%d", txHash, tx.From, tx.To, tx.Amount, tx.Fee, tx.Nonce)
 			}
 		}
 	}
@@ -200,19 +207,26 @@ func (cfg *Config) startFaucetServer(client *http.Client, nonces *nonceTracker) 
 			return
 		}
 
+		txHash := ""
+		if h, err := tx.Hash(); err == nil {
+			txHash = h
+		} else {
+			log.Printf("failed to compute faucet tx hash (from=%s to=%s nonce=%d): %v", tx.From, tx.To, tx.Nonce, err)
+		}
+
 		ctx, cancel := context.WithTimeout(r.Context(), cfg.requestTimeout())
 		defer cancel()
 
 		if err := submitTransaction(ctx, client, cfg.NodeURL, tx); err != nil {
 			release(false)
-			log.Printf("faucet tx submit failed (%s -> %s nonce %d): %v", tx.From, tx.To, tx.Nonce, err)
+			log.Printf("faucet tx submit failed (hash=%s from=%s to=%s nonce=%d): %v", txHash, tx.From, tx.To, tx.Nonce, err)
 			w.WriteHeader(http.StatusBadGateway)
 			_ = json.NewEncoder(w).Encode(faucetResponse{Status: "error", Error: "submission failed"})
 			return
 		}
 
 		release(true)
-		log.Printf("faucet submitted tx: from=%s to=%s amount=%d fee=%d nonce=%d", tx.From, tx.To, tx.Amount, tx.Fee, tx.Nonce)
+		log.Printf("faucet submitted tx: hash=%s from=%s to=%s amount=%d fee=%d nonce=%d", txHash, tx.From, tx.To, tx.Amount, tx.Fee, tx.Nonce)
 		_ = json.NewEncoder(w).Encode(faucetResponse{Status: "ok"})
 	})
 
