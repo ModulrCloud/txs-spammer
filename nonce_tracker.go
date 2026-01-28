@@ -10,8 +10,8 @@ import (
 )
 
 type accountState struct {
-	Balance uint64 `json:"Balance"`
-	Nonce   uint64 `json:"Nonce"`
+	Balance uint64 `json:"balance"`
+	Nonce   uint64 `json:"nonce"`
 }
 
 type nonceTracker struct {
